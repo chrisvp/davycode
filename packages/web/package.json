@@ -1,5 +1,6 @@
 {
   "name": "@opencode-ai/web",
+  "private": true,
   "type": "module",
   "license": "MIT",
   "version": "0.0.0-ci-202601291718",
