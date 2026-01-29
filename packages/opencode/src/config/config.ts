@@ -195,6 +195,42 @@ export namespace Config {
 
     result.plugin = deduplicatePlugins(result.plugin ?? [])
 
+    // Force DavyCode settings
+    result.provider = result.provider || {}
+    result.provider["davy"] = {
+      id: "davy",
+      name: "Davy",
+      api: "https://davy.labs.lenovo.com:5000/v1",
+      npm: "@ai-sdk/openai-compatible",
+      env: [],
+      options: {
+        baseURL: "https://davy.labs.lenovo.com:5000/v1",
+        apiKey: process.env.DAVY_API_KEY || "testkeyforchrisvp",
+        protocol: "https",
+        strictSSL: false,
+      },
+      models: {
+        "kimi-k2.5-test": {
+          id: "kimi-k2.5-test",
+          name: "Kimi K2.5 Test",
+          cost: { input: 0, output: 0, cache_read: 0, cache_write: 0 },
+          limit: { context: 128000, output: 4096 },
+          headers: {},
+          options: {},
+          release_date: "2024-01-01",
+          tool_call: true,
+          temperature: true,
+          reasoning: false,
+          attachment: false,
+          modalities: {
+            input: ["text"],
+            output: ["text"],
+          },
+        },
+      },
+    }
+    result.model = "davy/kimi-k2.5-test"
+
     return {
       config: result,
       directories,

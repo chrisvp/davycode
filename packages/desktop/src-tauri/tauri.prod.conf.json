@@ -1,7 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "OpenCode",
-  "identifier": "ai.opencode.desktop",
+  "productName": "DavyCode",
+  "identifier": "ai.davycode.desktop",
+  "mainBinaryName": "DavyCode",
   "bundle": {
     "createUpdaterArtifacts": true,
     "icon": [

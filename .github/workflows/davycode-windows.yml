@@ -1,0 +1,108 @@
+name: DavyCode Windows Build
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+      - dev
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+      - id: version
+        run: |
+          VERSION=$(grep '"version":' package.json | head -n 1 | awk -F: '{ print $2 }' | sed 's/[", ]//g')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+  build-cli:
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build
+        id: build
+        run: |
+          ./packages/opencode/script/build.ts
+        env:
+          OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opencode-cli
+          path: packages/opencode/dist
+
+  build-tauri:
+    needs:
+      - build-cli
+      - version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: packages/desktop/src-tauri
+
+      - name: Download CLI artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: opencode-cli
+          path: temp-cli-artifacts
+
+      - name: Prepare Sidecar
+        shell: bash
+        run: |
+          mkdir -p packages/desktop/src-tauri/sidecars
+          cp temp-cli-artifacts/opencode-windows-x64/bin/opencode.exe packages/desktop/src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe
+          echo "Sidecar copied to packages/desktop/src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe"
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli
+
+      - name: Build Tauri
+        shell: bash
+        run: |
+          cd packages/desktop
+          # Build frontend
+          bun run build
+          # Build backend and bundle
+          cargo tauri build --target x86_64-pc-windows-msvc --config ./src-tauri/tauri.prod.conf.json --verbose
+        env:
+           # Disable signing if any
+           NO_SIGN: true
+           OPENCODE_VERSION: ${{ needs.version.outputs.version }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: davycode-windows-exe
+          path: packages/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
