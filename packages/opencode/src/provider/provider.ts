@@ -1016,6 +1016,13 @@ export namespace Provider {
           }
         }
 
+        if (options["strictSSL"] === false) {
+          // @ts-ignore
+          opts.tls = {
+            rejectUnauthorized: false,
+          }
+        }
+
         return fetchFn(input, {
           ...opts,
           // @ts-ignore see here: https://github.com/oven-sh/bun/issues/16682
